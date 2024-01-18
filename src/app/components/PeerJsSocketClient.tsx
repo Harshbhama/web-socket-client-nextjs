@@ -11,12 +11,23 @@ const PeerJsSocket = () => {
   });  
   const [socket, setSocket] = useState<any>(undefined)
   const videoGrid = document.getElementById('video-grid');
+  const [roomNameForVideo, setRoomName] = useState<string>("ROOM-ID-1");
+  const [roomCheck, setRoomCheck] = useState<Boolean>(false);
+  const videoRef = useRef<undefined|null|any>(null);
   useEffect(() => {
-    const socket = io("http://localhost:3000") // Step1: Here the socket in initialized
-    setSocket(socket)  // Set state of socket used in below functions
-  },[])
-  
+    if(roomCheck){
+      const socket = io("http://localhost:3000") // Step1: Here the socket in initialized
+      setSocket(socket)  // Set state of socket used in below functions
+    }
+  },[roomCheck])
 
+  useEffect(() => {
+    if(!roomCheck &&  socket){
+      socket.disconnect()
+      setSocket(undefined)
+      videoRef.current.removeChild(videoRef.current.children[0])
+    }
+  },[socket, roomCheck])
 
   const addVideoStream = (video: any, stream: any, mutiple?: string|undefined) => {
     video.srcObject = stream
@@ -61,19 +72,26 @@ const PeerJsSocket = () => {
           
       })
       socket.on('user-disconnected', userID => {
-        console.log(userID)
         if(peers[userID])
         peers[userID].close()
       })
       peer.on('open', id => { //Every Peer object is assigned a random, unique ID when it's created.
-        socket.emit("join-room", 'ROOM_ID', id); // This line of code is sending message to join room to server code.
+        socket.emit("join-room", roomNameForVideo, id); // This line of code is sending message to join room to server code.
       })
     }
-  },[socket, peer])
+  },[socket])
 
   return(
-    <div>In Peer JS Client
-      <div id="video-grid" className="flex flex-row gap-24 set-video-properties">
+    <div className="flex flex-col gap-10 justify-center text-center">In Peer JS Client
+      {roomNameForVideo && <div className="flex flex-row gap-5 m-auto"><span className="text-red-500 text-[24px]">Current Room Name: </span><p className=" text-white text-[24px]"> {roomNameForVideo}</p></div>}
+      <div className="flex flex-row gap-5 align-middle m-auto"><input value={roomNameForVideo} placeholder="Room name" className="text-black" onChange={(e) => {setRoomName(e.target.value)
+       setRoomCheck(false)}}/> <button onClick={() => {
+        setRoomCheck(true)
+        if(!roomNameForVideo){
+          setRoomName('ROOM-ID-1')
+        }
+        }}>Join room</button></div>
+      <div ref={videoRef} id="video-grid" className="flex flex-row gap-24 set-video-properties">
       </div>
     </div>
 
