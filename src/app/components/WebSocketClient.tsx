@@ -7,29 +7,35 @@ const WebSocketClient = () => {
   const [socket, setSocket] = useState<any>(undefined)
   const [roomName, setRoomName] = useState("")
   const [msg, setOutGoingMsg] = useState("");
-  const [receivedMsg, setReceivedMsg] = useState<string[]>([]);
+  const [receivedMsg, setReceivedMsg] = useState<any>([]);
   const [currentRoom, setCurrentRoom] = useState<string>("");
+  const [userId, setUserId] = useState<number>(0);
   const handleSendMessage = () => {
     if(socket){
-      socket.emit("message", msg, roomName)
+      socket.emit("message", msg, roomName, userId)
     }
   }
   const handleJoinRoom = () => {
     socket.emit("joinedRoom", roomName)
   }
   useEffect(() => {
+    let userId = Math.floor(Math.random() * 100)
+    console.log("userId", userId)
     const socket = io("http://localhost:3000")
     setSocket(socket)
+    setUserId(userId);
   },[])
   useEffect(() => {
     if(socket){
-      socket.on("message", (message: string, roomNameReceived: string) => {
+      socket.on("message", (message: string, roomNameReceived: string, userId: number) => {
         let newMsg = [...receivedMsg]
-        newMsg.push(message)
+        newMsg.push({message: message,   userId: userId})
+        console.log("newMsg",newMsg)
         setReceivedMsg(newMsg)
         setCurrentRoom(roomNameReceived)
       })
     }
+    console.log("receivedMsg",receivedMsg)
   },[receivedMsg, socket])
   return(
     <>
@@ -42,10 +48,10 @@ const WebSocketClient = () => {
       </div>
       <div className="flex flex-col">
         <h1>Incoming Messages</h1>
-        {!!receivedMsg?.length && receivedMsg?.map((msg, index) => {
+        {!!receivedMsg?.length && receivedMsg?.map((msg: any, index:number) => {
           return(
-            <p className="" key={index}>
-              {msg}
+            <p className={msg?.userId === userId ? " text-red-700" : " text-blue-700"} key={index}>
+              {msg?.message}
             </p>
           )
         })}
